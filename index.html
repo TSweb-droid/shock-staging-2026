@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Stadio SCAI · CSWG 2026</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: banco di confronto a terzietà. Input unico a sinistra (con l'etichetta del sistema che legge ogni dato),
+   due esiti gemelli e il pannello delle divergenze a destra, fissi durante lo scorrimento; sotto, i due riferimenti
+   affiancati con la stessa larghezza. Una sola scala neutra di gravità A–E, condivisa dai due sistemi. */
+:root{
+  --paper:#f3f5f6; --surface:#ffffff; --sunk:#e8edf0; --ink:#16202a; --muted:#56636f; --line:#d1d9df; --accent:#2a5b87;
+  --agree:#24613f; --agree-bg:#e1f0e6; --diverge:#7d4f00; --diverge-bg:#fbefd6; --bad:#b0302a;
+  --s-a:#e4e9ed; --s-b:#c0ccd5; --s-c:#8a9fb0; --s-d:#52697d; --s-e:#22344a;
+  --on-a:#16202a; --on-b:#16202a; --on-c:#0d1620; --on-d:#ffffff; --on-e:#ffffff;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0f151b; --surface:#172029; --sunk:#1d2832; --ink:#e5ebf0; --muted:#9aa8b4; --line:#2b3945; --accent:#7fb2dc;
+  --agree:#9ad8b2; --agree-bg:#163526; --diverge:#f2cf86; --diverge-bg:#3a2c10; --bad:#f08b80;
+  --s-a:#26323d; --s-b:#384d5e; --s-c:#5d7990; --s-d:#9ab2c5; --s-e:#dbe6ee;
+  --on-a:#e5ebf0; --on-b:#e5ebf0; --on-c:#ffffff; --on-d:#0f151b; --on-e:#0f151b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0f151b; --surface:#172029; --sunk:#1d2832; --ink:#e5ebf0; --muted:#9aa8b4; --line:#2b3945; --accent:#7fb2dc;
+  --agree:#9ad8b2; --agree-bg:#163526; --diverge:#f2cf86; --diverge-bg:#3a2c10; --bad:#f08b80;
+  --s-a:#26323d; --s-b:#384d5e; --s-c:#5d7990; --s-d:#9ab2c5; --s-e:#dbe6ee;
+  --on-a:#e5ebf0; --on-b:#e5ebf0; --on-c:#ffffff; --on-d:#0f151b; --on-e:#0f151b; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
+p{margin:0}
+a{color:var(--accent)}
+button,input,label{font:inherit;color:inherit;touch-action:manipulation}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1360px;margin:0 auto;padding-block:18px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:16px}
+
+/* Testata */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 20px}
+.kicker{font-family:var(--f-display);font-weight:600;font-size:.78rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+h1{font-weight:700;font-size:clamp(1.55rem,3.6vw,2.1rem);line-height:1.05;letter-spacing:.005em}
+.sub{color:var(--muted);margin-top:6px;max-width:78ch;font-size:.95rem}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;font-weight:600;font-size:.86rem}
+.btn:hover{border-color:var(--accent)}
+.disclosure{font-size:.85rem;color:var(--muted);border-left:3px solid var(--line);padding:2px 0 2px 12px;max-width:110ch}
+.disclosure b{color:var(--ink);font-weight:600}
+
+/* Casi */
+.cases{display:flex;flex-direction:column;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.cases-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cases-lab{font-family:var(--f-display);font-weight:600;font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);min-width:82px}
+.case{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:4px 11px;font-size:.84rem;font-weight:500}
+.case:hover{border-color:var(--accent)}
+.case[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+/* Griglia principale */
+.main{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+@media (min-width:1080px){.main{grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);align-items:start}}
+
+/* Input */
+form{display:flex;flex-direction:column;gap:12px;min-width:0}
+fieldset{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:0;padding:10px 14px 14px;min-width:0;display:flex;flex-direction:column;gap:10px}
+legend{font-family:var(--f-display);font-weight:600;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:0 6px}
+.who{display:inline-flex;gap:3px;margin-left:6px;vertical-align:1px}
+.who span{font-family:var(--f-data);font-size:.62rem;font-weight:600;letter-spacing:.04em;border:1px solid var(--line);border-radius:4px;padding:0 4px;line-height:1.5;color:var(--muted);text-transform:none}
+.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,128px),1fr));gap:10px}
+.num{display:flex;flex-direction:column;gap:3px;min-width:0}
+.num>label{font-size:.84rem;font-weight:600;display:flex;align-items:center;flex-wrap:wrap}
+.box{display:flex;border:1.5px solid var(--line);border-radius:8px;background:var(--paper);overflow:hidden}
+.box:focus-within{border-color:var(--accent)}
+.box input{flex:1;min-width:0;border:0;background:transparent;font-family:var(--f-data);font-weight:600;font-size:1.12rem;padding:6px 8px;font-variant-numeric:tabular-nums}
+.box input:focus{outline:none}
+.box .u{display:grid;place-items:center;padding:0 7px;color:var(--muted);font-size:.74rem;border-left:1px solid var(--line);white-space:nowrap}
+.box.bad{border-color:var(--bad)}
+.err{font-size:.76rem;color:var(--bad);font-weight:600}
+.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:2px 16px}
+.ck{display:flex;gap:9px;align-items:flex-start;font-size:.9rem;line-height:1.3;cursor:pointer;padding:6px 0}
+.ck input{margin-top:1px;width:18px;height:18px;flex:none;accent-color:var(--accent)}
+.seg{position:relative;display:grid;border:1.5px solid var(--line);border-radius:9px;overflow:hidden}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{display:grid;place-items:center;text-align:center;padding:7px 6px;font-size:.84rem;font-weight:600;line-height:1.2;cursor:pointer;background:var(--paper);border-left:1px solid var(--line);border-top:1px solid var(--line);margin:-1px 0 0 -1px;min-height:42px}
+.seg input:checked+label{background:var(--ink);color:var(--paper)}
+.seg input:focus-visible+label{outline:3px solid var(--accent);outline-offset:-3px}
+.seg input:disabled+label{opacity:.4;cursor:default}
+.seg3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.seg2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.seg4{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (min-width:620px){.seg4{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.flabel{font-size:.84rem;font-weight:600;display:flex;align-items:center;flex-wrap:wrap}
+.hint{font-size:.78rem;color:var(--muted)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px}
+.stepper{display:grid;grid-template-columns:42px minmax(0,1fr) 42px;border:1.5px solid var(--line);border-radius:8px;overflow:hidden;background:var(--paper)}
+.stepper button{border:0;background:transparent;font-size:1.3rem;font-weight:600;min-height:42px}
+.stepper button:hover{background:var(--line)}
+.stepper button:disabled{color:var(--line);cursor:default;background:transparent}
+.stepper output{display:grid;place-items:center;font-family:var(--f-data);font-weight:600;font-size:1.2rem;border-inline:1px solid var(--line)}
+.total{display:flex;justify-content:space-between;align-items:baseline;font-size:.86rem;color:var(--muted);border-top:1px dashed var(--line);padding-top:8px}
+.total strong{font-family:var(--f-data);font-size:1.25rem;color:var(--ink)}
+details.inv summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:2px 0}
+details.inv[open] summary{margin-bottom:8px}
+
+/* Esiti */
+.results{display:flex;flex-direction:column;gap:12px;min-width:0}
+@media (min-width:1080px){.results{position:sticky;top:calc(12px + env(safe-area-inset-top,0px));max-height:calc(100vh - 24px - env(safe-area-inset-top,0px));overflow-y:auto;padding-bottom:4px}}
+.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:540px){.pair{grid-template-columns:minmax(0,1fr)}}
+.sys{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.sys-h{display:flex;flex-direction:column;gap:1px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.sys-h h2{font-size:1.2rem;font-weight:700;letter-spacing:.02em}
+.sys-h span{font-size:.76rem;color:var(--muted)}
+.sys-main{display:flex;gap:12px;align-items:center}
+.letter{width:76px;height:76px;flex:none;border-radius:10px;display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:3.2rem;line-height:1;background:var(--sunk);color:var(--muted);transition:background-color .25s}
+.letter.na{font-size:1.9rem}
+.sA{background:var(--s-a);color:var(--on-a)} .sB{background:var(--s-b);color:var(--on-b)} .sC{background:var(--s-c);color:var(--on-c)} .sD{background:var(--s-d);color:var(--on-d)} .sE{background:var(--s-e);color:var(--on-e)}
+.letter.sA{box-shadow:inset 0 0 0 1px var(--line)}
+.sys-title{font-family:var(--f-display);font-weight:700;font-size:1.2rem;line-height:1.15}
+.sys-rule{font-family:var(--f-data);font-size:.76rem;color:var(--muted);margin-top:2px}
+.sys-why{font-size:.88rem;color:var(--muted)}
+.sys-why b{color:var(--ink);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:.78rem;font-weight:600;border-radius:6px;padding:3px 8px;background:var(--sunk);color:var(--ink)}
+.chip.mod{background:var(--ink);color:var(--paper)}
+.chip.warn{background:var(--diverge-bg);color:var(--diverge)}
+
+.verdict{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px}
+.v-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pill{font-family:var(--f-display);font-weight:700;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;border-radius:999px;padding:3px 10px}
+.pill.ok{background:var(--agree-bg);color:var(--agree)}
+.pill.no{background:var(--diverge-bg);color:var(--diverge)}
+.pill.na{background:var(--sunk);color:var(--muted)}
+.v-h h3{font-size:1.05rem;font-weight:600}
+.reasons{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.reasons li{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;padding-left:12px;border-left:3px solid var(--line)}
+.reasons li.k-principio{border-left-color:var(--diverge)}
+.r-cat{font-family:var(--f-display);font-weight:600;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.r-t{font-weight:600;font-size:.92rem}
+.r-x{font-size:.86rem;color:var(--muted)}
+.v-empty{font-size:.88rem;color:var(--muted)}
+
+/* Riferimenti */
+.refs{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin-top:8px}
+@media (min-width:1080px){.refs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ref{display:flex;flex-direction:column;gap:8px;min-width:0}
+.ref h2,.sec h2{font-size:1.05rem;font-weight:700}
+.ref p.cap{font-size:.82rem;color:var(--muted)}
+.tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:separate;border-spacing:3px;width:100%;font-size:.8rem;line-height:1.3}
+th,td{padding:6px 7px;border-radius:5px;vertical-align:top;text-align:left}
+.mx-s{min-width:640px}
+.mx-c{min-width:560px;font-variant-numeric:tabular-nums}
+.mx-c td,.mx-c thead th{text-align:center;font-family:var(--f-data);font-weight:600}
+.mx-c td.op{font-family:var(--f-body);font-size:.68rem;letter-spacing:.08em;color:var(--muted)}
+th.rowh{font-size:.68rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700;white-space:nowrap;vertical-align:middle;text-align:left!important;font-family:var(--f-body)!important}
+thead th.lt{font-family:var(--f-display);font-weight:700;font-size:1.25rem;text-align:center;padding:3px}
+thead th.lt small{display:block;font-family:var(--f-body);font-size:.6rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.85}
+tbody td{background:var(--paper);border:1px solid var(--line)}
+.has-on .col:not(.on){opacity:.38}
+td.col.on{border:2px solid var(--ink)}
+.mx-c .col.alsoon{opacity:.75}
+.legend{font-size:.78rem;color:var(--muted)}
+
+.sec{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.t-cmp{min-width:760px;font-size:.84rem}
+.t-cmp thead th{font-family:var(--f-display);font-weight:600;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+.t-cmp tbody th{font-weight:600;font-size:.84rem;background:var(--sunk);width:15%}
+.t-cmp td{width:42.5%}
+.foot{font-size:.8rem;color:var(--muted);max-width:110ch;display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:12px}
+.foot ol{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:3px}
+
+/* Ordine dei sistemi (pulsante Inverti) */
+[data-swap="1"] .o-scai{order:2} [data-swap="1"] .o-cswg{order:1}
+.bar .o-scai{order:1} .bar .bv{order:2} .bar .o-cswg{order:3}
+[data-swap="1"] .bar .o-scai{order:3} [data-swap="1"] .bar .o-cswg{order:1}
+
+/* Barra telefono */
+.bar{display:none}
+@media (max-width:1079px){
+  body{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))}
+  .bar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:20;gap:10px;align-items:center;justify-content:space-between;
+    padding:8px max(16px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+    background:var(--surface);border:0;border-top:1px solid var(--line);width:100%;text-align:left;box-shadow:0 -8px 20px -16px rgba(0,0,0,.5)}
+  .bar.off{transform:translateY(110%)}
+}
+.bar .bs{display:flex;gap:8px;align-items:center}
+.bar .bl{width:40px;height:40px;border-radius:8px;display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:1.6rem;background:var(--sunk);color:var(--muted)}
+.bar .bn{font-family:var(--f-data);font-size:.72rem;color:var(--muted)}
+.bar .bv{font-size:.8rem;font-weight:700}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+.t-diff{min-width:640px;font-size:.84rem}
+.t-diff thead th{font-family:var(--f-display);font-weight:600;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+.t-diff tbody th{font-weight:600;background:var(--sunk);width:22%}
+.t-diff td{width:39%}
+.t-diff td.hl{background:var(--diverge-bg);color:var(--diverge)}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="root" data-swap="0">
+  <header class="top">
+    <div>
+      <p class="kicker">Masterclass SIC 2026 · Stadiazione dello shock cardiogeno</p>
+      <h1>SCAI 2026 e CSWG 2026 sullo stesso paziente</h1>
+      <p class="sub">Inserisci i dati una sola volta. Le due classificazioni assegnano lo stadio in parallelo e ogni divergenza viene ricondotta alla regola che la produce. Accanto a ogni dato è indicato quale sistema lo legge.</p>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn" id="swap" aria-pressed="false">Inverti l'ordine</button>
+      <button type="button" class="btn" id="reset">Azzera</button>
+    </div>
+  </header>
+
+  <p class="disclosure"><b>Strumento didattico e di ricerca.</b> SCAI 2026 affida lo stadio al giudizio clinico integrato e non fornisce un algoritmo: la sua lettura qui è un'operazionalizzazione delle definizioni, della Tabella 2 e della checklist da letto del materiale supplementare (S5), selezionabili. CSWG 2026 è implementato alla lettera dalla Central Illustration (versione pre-proof). Non è un dispositivo medico e non deve guidare decisioni sul singolo paziente. I dati restano nel browser.</p>
+
+  <section class="cases" aria-label="Casi d'esempio">
+    <div class="cases-row"><span class="cases-lab">Concordi</span><span id="cases-ok" class="cases-row"></span></div>
+    <div class="cases-row"><span class="cases-lab">Discordi</span><span id="cases-no" class="cases-row"></span></div>
+  </section>
+
+  <div class="main">
+    <form id="form" novalidate>
+      <fieldset>
+        <legend>Contesto</legend>
+        <span class="flabel" id="ctx-l">Dominio di applicazione<span class="who"><span>SCAI</span></span></span>
+        <div class="seg seg3" role="radiogroup" aria-labelledby="ctx-l">
+          <input type="radio" name="ctx" id="ctx-acute" value="acute" checked><label for="ctx-acute">Evento acuto o procedura ad alto rischio</label>
+          <input type="radio" name="ctx" id="ctx-hf" value="hf"><label for="ctx-hf">HF cronico ad alto rischio</label>
+          <input type="radio" name="ctx" id="ctx-none" value="none"><label for="ctx-none">Nessuno dei due</label>
+        </div>
+        <span class="flabel" id="src-l">Soglie SCAI da applicare<span class="who"><span>SCAI</span></span></span>
+        <div class="seg seg2" role="radiogroup" aria-labelledby="src-l">
+          <input type="radio" name="src" id="src-t2" value="t2" checked><label for="src-t2">Tabella 2 del testo</label>
+          <input type="radio" name="src" id="src-s5" value="s5"><label for="src-s5">Checklist da letto (Suppl. S5)</label>
+        </div>
+        <span class="hint">Le due fonti SCAI differiscono ai limiti: lattato ≥2 o &gt;2 e ≥8 o &gt;8 mmol/L; pH ≤7,2 o &lt;7,2; FC ≥100 o &gt;100 escluse le tachiaritmie; deficit di basi solo in Tabella 2.</span>
+      </fieldset>
+
+      <fieldset>
+        <legend>Pressione e frequenza</legend>
+        <div class="nums">
+          <div class="num"><label for="sbp">PAS<span class="who"><span>SCAI</span><span>CSWG</span></span></label><div class="box" id="sbp-box"><input id="sbp" inputmode="decimal" autocomplete="off"><span class="u">mmHg</span></div><span class="err" id="sbp-err" hidden></span></div>
+          <div class="num"><label for="map">PAM<span class="who"><span>SCAI</span></span></label><div class="box" id="map-box"><input id="map" inputmode="decimal" autocomplete="off"><span class="u">mmHg</span></div><span class="err" id="map-err" hidden></span></div>
+          <div class="num"><label for="hr">FC<span class="who"><span>SCAI</span></span></label><div class="box" id="hr-box"><input id="hr" inputmode="decimal" autocomplete="off"><span class="u">bpm</span></div><span class="err" id="hr-err" hidden></span></div>
+        </div>
+        <div class="checks">
+          <label class="ck"><input type="checkbox" id="drop30"><span>Calo della PAS &gt;30 mmHg dal basale<span class="who"><span>SCAI</span></span></span></label>
+          <label class="ck"><input type="checkbox" id="tachy"><span>Tachicardia da aritmia <small>(esclusa dalla checklist S5)</small><span class="who"><span>SCAI</span></span></span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Perfusione</legend>
+        <div class="nums">
+          <div class="num"><label for="lac">Lattato<span class="who"><span>SCAI</span><span>CSWG</span></span></label><div class="box" id="lac-box"><input id="lac" inputmode="decimal" autocomplete="off"><span class="u">mmol/L</span></div><span class="err" id="lac-err" hidden></span></div>
+          <div class="num"><label for="ph">pH<span class="who"><span>SCAI</span></span></label><div class="box" id="ph-box"><input id="ph" inputmode="decimal" autocomplete="off"></div><span class="err" id="ph-err" hidden></span></div>
+          <div class="num"><label for="bd">Deficit di basi<span class="who"><span>SCAI</span></span></label><div class="box" id="bd-box"><input id="bd" inputmode="decimal" autocomplete="off"><span class="u">mEq/L</span></div><span class="err" id="bd-err" hidden></span></div>
+        </div>
+        <div class="checks">
+          <label class="ck"><input type="checkbox" id="skin"><span>Cute fredda, marezzata o refill rallentato<span class="who"><span>SCAI</span></span></span></label>
+          <label class="ck"><input type="checkbox" id="mental"><span>Alterazione acuta dello stato mentale<span class="who"><span>SCAI</span></span></span></label>
+          <label class="ck"><input type="checkbox" id="olig"><span>Diuresi &lt;30 mL/h <small>(Tab. 2)</small> o &lt;0,5 mL/kg/h <small>(S5)</small><span class="who"><span>SCAI</span></span></span></label>
+          <label class="ck"><input type="checkbox" id="creat"><span>Creatinina ×1,5 <small>(o +0,3 mg/dL, solo Tab. 2)</small> o GFR −50%<span class="who"><span>SCAI</span></span></span></label>
+          <label class="ck"><input type="checkbox" id="transam"><span>AST e ALT aumentate<span class="who"><span>SCAI</span></span></span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Supporto in corso</legend>
+        <div class="two">
+          <div class="num"><span class="flabel" id="drugs-l">Farmaci vasoattivi<span class="who"><span>SCAI</span><span>CSWG</span></span></span>
+            <div class="stepper" role="group" aria-labelledby="drugs-l"><button type="button" id="drugs-minus" aria-label="Un farmaco in meno">−</button><output id="drugs" aria-live="polite">0</output><button type="button" id="drugs-plus" aria-label="Un farmaco in più">+</button></div>
+            <span class="hint">Dopamina, dobutamina, milrinone, adrenalina, noradrenalina, vasopressina, levosimendan</span></div>
+          <div class="num"><span class="flabel" id="dev-l">Dispositivi tMCS<span class="who"><span>SCAI</span><span>CSWG</span></span></span>
+            <div class="stepper" role="group" aria-labelledby="dev-l"><button type="button" id="dev-minus" aria-label="Un dispositivo in meno">−</button><output id="dev" aria-live="polite">0</output><button type="button" id="dev-plus" aria-label="Un dispositivo in più">+</button></div>
+            <span class="hint">IABP, Impella (2.5, CP, 5.0, 5.5), RVAD percutaneo, VA-ECMO</span></div>
+        </div>
+        <div class="total"><span>Totale farmaci + tMCS (conteggio CSWG)</span><strong id="tot">0</strong></div>
+        <label class="ck"><input type="checkbox" id="forshock" checked><span>Supporti avviati per shock cardiogeno (non inotropo empirico né Impella per PCI protetta)<span class="who"><span>SCAI</span><span>CSWG</span></span></span></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Decorso dopo la strategia iniziale</legend>
+        <span class="flabel" id="traj-l">Traiettoria<span class="who"><span>SCAI</span></span></span>
+        <div class="seg seg4" role="radiogroup" aria-labelledby="traj-l">
+          <input type="radio" name="traj" id="traj-first" value="first" checked><label for="traj-first">Prima valutazione</label>
+          <input type="radio" name="traj" id="traj-improving" value="improving"><label for="traj-improving">In miglioramento</label>
+          <input type="radio" name="traj" id="traj-flat" value="flat"><label for="traj-flat">Non migliorato a 4–6 h</label>
+          <input type="radio" name="traj" id="traj-worsening" value="worsening"><label for="traj-worsening">In peggioramento a 2–3 h</label>
+        </div>
+        <div class="checks">
+          <label class="ck"><input type="checkbox" id="profound"><span>Ipotensione profonda nonostante supporto massimale <small>(di norma più vasoattivi ad alte dosi e MCS, S5)</small><span class="who"><span>SCAI</span></span></span></label>
+          <label class="ck"><input type="checkbox" id="mof"><span>Insufficienza multiorgano grave<span class="who"><span>SCAI</span></span></span></label>
+          <label class="ck"><input type="checkbox" id="boli"><span>Boli di vasopressori per mantenere la PAM<span class="who"><span>SCAI</span></span></span></label>
+          <label class="ck"><input type="checkbox" id="cpr"><span>RCP in corso, polsi quasi assenti o defibrillazioni multiple<span class="who"><span>SCAI</span></span></span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Arresto cardiaco</legend>
+        <div class="two">
+          <div class="num"><span class="flabel" id="ca-l">Sede<span class="who"><span>CSWG</span></span></span>
+            <div class="seg seg3" role="radiogroup" aria-labelledby="ca-l">
+              <input type="radio" name="ca" id="ca-none" value="none" checked><label for="ca-none">Nessuno</label>
+              <input type="radio" name="ca" id="ca-ohca" value="ohca"><label for="ca-ohca">OHCA</label>
+              <input type="radio" name="ca" id="ca-ihca" value="ihca"><label for="ca-ihca">IHCA</label>
+            </div></div>
+          <div class="num"><span class="flabel" id="neuro-l">Stato neurologico<span class="who"><span>SCAI</span></span></span>
+            <div class="seg seg2" role="radiogroup" aria-labelledby="neuro-l">
+              <input type="radio" name="neuro" id="neuro-coma" value="coma" checked><label for="neuro-coma">Coma o sospetta lesione anossica</label>
+              <input type="radio" name="neuro" id="neuro-awake" value="awake"><label for="neuro-awake">Cosciente, esegue i comandi</label>
+            </div></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <details class="inv" id="inv">
+          <summary>Emodinamica invasiva, se disponibile</summary>
+          <div class="nums">
+            <div class="num"><label for="ci">CI<span class="who"><span>SCAI</span></span></label><div class="box" id="ci-box"><input id="ci" inputmode="decimal" autocomplete="off"><span class="u">L/min/m²</span></div><span class="err" id="ci-err" hidden></span></div>
+            <div class="num"><label for="pcwp">PCWP<span class="who"><span>SCAI</span></span></label><div class="box" id="pcwp-box"><input id="pcwp" inputmode="decimal" autocomplete="off"><span class="u">mmHg</span></div><span class="err" id="pcwp-err" hidden></span></div>
+            <div class="num"><label for="cvp">CVP<span class="who"><span>SCAI</span></span></label><div class="box" id="cvp-box"><input id="cvp" inputmode="decimal" autocomplete="off"><span class="u">mmHg</span></div><span class="err" id="cvp-err" hidden></span></div>
+            <div class="num"><label for="sat">Sat AP<span class="who"><span>SCAI</span></span></label><div class="box" id="sat-box"><input id="sat" inputmode="decimal" autocomplete="off"><span class="u">%</span></div><span class="err" id="sat-err" hidden></span></div>
+          </div>
+          <p class="hint" style="margin-top:6px">Per SCAI questi valori sono reperti di supporto: commentano lo stadio ma non lo determinano. Nella checklist S5 CI &lt;2,5 e CVP &gt;10 o PCWP &gt;15 compaiono già nello stadio B; CI &lt;2,2 nello stadio C. CSWG 2026 non li usa.</p>
+        </details>
+      </fieldset>
+    </form>
+
+    <aside class="results" id="results" aria-live="polite">
+      <div class="pair">
+        <section class="sys o-scai" aria-labelledby="h-scai">
+          <div class="sys-h"><h2 id="h-scai">SCAI 2026</h2><span>Consenso di esperti · tre pilastri</span></div>
+          <div class="sys-main"><div class="letter na" id="s-letter">–</div><div><p class="sys-title" id="s-title">–</p><p class="sys-rule" id="s-rule"></p></div></div>
+          <p class="sys-why" id="s-why"></p>
+          <div class="chips" id="s-chips"></div>
+        </section>
+        <section class="sys o-cswg" aria-labelledby="h-cswg">
+          <div class="sys-h"><h2 id="h-cswg">CSWG 2026</h2><span>Matrice da registro · 3 variabili</span></div>
+          <div class="sys-main"><div class="letter na" id="c-letter">–</div><div><p class="sys-title" id="c-title">–</p><p class="sys-rule" id="c-rule"></p></div></div>
+          <p class="sys-why" id="c-why"></p>
+          <div class="chips" id="c-chips"></div>
+        </section>
+      </div>
+      <section class="verdict" aria-labelledby="v-title">
+        <div class="v-h"><span class="pill na" id="v-pill">–</span><h3 id="v-title">Confronto</h3></div>
+        <ul class="reasons" id="v-list"></ul>
+        <p class="v-empty" id="v-empty" hidden></p>
+      </section>
+    </aside>
+  </div>
+
+  <div class="refs" id="refs">
+    <section class="ref o-scai" aria-labelledby="r-scai">
+      <h2 id="r-scai">SCAI 2026 · Tabella 2 in sintesi</h2>
+      <p class="cap">“Tipicamente include” e “può includere” del documento. Non tutti i reperti sono necessari per uno stadio. Colonna attiva evidenziata.</p>
+      <div class="tscroll"><table class="mx-s" id="mxs"><thead><tr id="mxs-h"><th></th></tr></thead><tbody id="mxs-b"></tbody></table></div>
+    </section>
+    <section class="ref o-cswg" aria-labelledby="r-cswg">
+      <h2 id="r-cswg">CSWG 2026 · Central Illustration</h2>
+      <p class="cap">Ogni colonna si legge (PAS ⟨op⟩ lattato) ⟨op⟩ totale farmaci + tMCS. Se più colonne sono vere vale la più grave, evidenziata; le altre colonne vere restano più chiare.</p>
+      <div class="tscroll"><table class="mx-c" id="mxc"><thead><tr id="mxc-h"><th></th></tr></thead><tbody id="mxc-b"></tbody></table></div>
+    </section>
+  </div>
+
+  <section class="sec" aria-labelledby="diff-h">
+    <h2 id="diff-h">SCAI 2026: Tabella 2 e checklist da letto non coincidono</h2>
+    <p class="legend">Il selettore “Soglie SCAI da applicare” passa da una fonte all'altra. In evidenza le differenze che possono cambiare la lettera.</p>
+    <div class="tscroll">
+      <table class="t-diff">
+        <thead><tr><th>Elemento</th><th>Tabella 2 (testo)</th><th>Checklist S5 (supplemento)</th></tr></thead>
+        <tbody>
+          <tr><th>Lattato, stadio C</th><td class="hl">≥2 mmol/L</td><td class="hl">&gt;2 mmol/L</td></tr>
+          <tr><th>Lattato, stadio E</th><td class="hl">≥8 mmol/L</td><td class="hl">&gt;8 mmol/L</td></tr>
+          <tr><th>Acidosi, stadio E</th><td class="hl">pH ≤7,2; deficit di basi &gt;10 mEq/L</td><td class="hl">pH &lt;7,2; insufficienza multiorgano</td></tr>
+          <tr><th>FC, stadio B</th><td class="hl">≥100 bpm</td><td class="hl">&gt;100 bpm, escluse le tachiaritmie</td></tr>
+          <tr><th>Diuresi, stadio C</th><td>&lt;30 mL/h</td><td>&lt;0,5 mL/kg/h</td></tr>
+          <tr><th>Creatinina, stadio C</th><td>×1,5 o +0,3 mg/dL, o GFR −50%</td><td>×1,5 o GFR −50%</td></tr>
+          <tr><th>Emodinamica, stadio B</th><td>CI &lt;2,5; sat AP &lt;60%</td><td>CI &lt;2,5; CVP &gt;10 e/o PCWP &gt;15</td></tr>
+          <tr><th>Emodinamica, stadio C</th><td>CI &lt;2,2; PCWP &gt;15; CVP &gt;10. Ipotensione non necessaria</td><td>CI &lt;2,2; PCWP &gt;15; necessità di inotropi, vasopressori o MCS per normalizzare CI o perfusione. “Di solito ipoteso”</td></tr>
+          <tr><th>Stadio A</th><td>PAS ≥100; CI ≥2,5; sat AP ≥65%</td><td>PAS &gt;100; CI &gt;2,5; sat AP &gt;65%</td></tr>
+          <tr><th>Modificatore arrest</th><td>Nota: “arresto e RCP in corso”</td><td>Arresto con sospetta lesione anossica, con criteri neurologici</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="cmp-h">
+    <h2 id="cmp-h">Le regole a confronto</h2>
+    <div class="tscroll">
+      <table class="t-cmp">
+        <thead><tr><th>Elemento</th><th>SCAI 2026</th><th>CSWG 2026</th></tr></thead>
+        <tbody>
+          <tr><th>Natura</th><td>Consenso di esperti, voto con soglia del 75%. Giudizio clinico integrato su esame obiettivo, biochimica ed emodinamica. Nessun algoritmo.</td><td>Revisione dei criteri CSWG 2022 su registro (11.640 pazienti, 36 centri) e applicazione esterna in HCA (1.417.637 pazienti, 161 ospedali). Matrice a tre variabili.</td></tr>
+          <tr><th>Ipoperfusione</th><td>Segni clinici, lattato ≥2 (Tabella 2) o &gt;2 mmol/L (S5), creatinina, transaminasi. Nello HF-CS un lattato quasi normale non la esclude.</td><td>Lattato &gt;2 mmol/L. Gli autori riconoscono che il lattato da solo può non bastare.</td></tr>
+          <tr><th>Stadio B</th><td>Instabilità emodinamica senza ipoperfusione. L'ipoperfusione normotesa è C.</td><td>PAS 60–&lt;90 oppure lattato &gt;2–5, senza supporti. L'ipoperfusione normotesa con lattato 2–5 è B.</td></tr>
+          <tr><th>Stadio C</th><td>Ipoperfusione che richiede un intervento oltre il volume, con o senza ipotensione.</td><td>PAS 60–&lt;90 e lattato &gt;2–5 senza supporti, oppure PAS ≥90 e lattato ≤2 con 1–2 supporti (solo con diagnosi di CS).</td></tr>
+          <tr><th>Stadio D</th><td>Fallimento della strategia iniziale: ipoperfusione che peggiora (2–3 h) o non migliora (4–6 h). Non assegnabile alla prima valutazione.</td><td>Lattato &gt;5–10 senza supporti; PAS 60–&lt;90 o lattato &gt;2–10 con 1–2 supporti; qualunque PAS ≥60 e lattato ≤10 con 3–4 supporti.</td></tr>
+          <tr><th>Stadio E</th><td>Collasso circolatorio in atto o imminente: lattato ≥8 (Tabella 2) o &gt;8 (S5), boli di vasopressori, RCP, ipotensione profonda nonostante supporto massimale, insufficienza multiorgano, acidosi grave.</td><td>PAS &lt;60 oppure lattato &gt;10 oppure ≥5 farmaci + tMCS.</td></tr>
+          <tr><th>Terapia</th><td>Tipo e intensità della terapia da soli non definiscono lo stadio; sono evidenza complementare (Tabella 1, S2). La checklist S5 elenca tra i reperti di C la necessità di supporto per normalizzare CI o perfusione. L'ECLS da sola non fa E.</td><td>Il numero totale di farmaci e dispositivi è un criterio. Il VIS non migliora il modello (p=0,159).</td></tr>
+          <tr><th>Arresto</th><td>Modificatore “arrest” a ogni stadio per arresto con sospetta lesione anossica: non risponde ai comandi, marcatori di danno cerebrale, TC o RM, MIRACLE2 elevato (S5). La nota alla Tabella 2 parla invece di “arresto e RCP in corso”.</td><td>OHCA modificatore di stadio; IHCA stadio E automatico (Tabella 2), “verosimilmente E” nell'illustrazione centrale.</td></tr>
+          <tr><th>Stadio A</th><td>A rischio chiaro e azionabile: gruppi coronarico, elettrofisiologico, strutturale, scompenso.</td><td>“No CS”: PAS ≥90, lattato 0–2, nessun supporto.</td></tr>
+          <tr><th>Definizioni operative</th><td>Il supplemento (S3–S4) elenca sette definizioni pubblicate di stadio B e sette di C, tra cui quella CSWG 2022. Sei delle sette definizioni di C usano direttamente la terapia.</td><td>Una sola matrice pubblicata, con codice di calcolo.</td></tr>
+          <tr><th>Dominio</th><td>Evento acuto o acuto su cronico, procedure ad alto rischio; fenotipi AMI, HF, valvolare, VD, misto, postcardiotomico, pediatrico.</td><td>HF-CS e MI-CS: un solo sistema per entrambi. Altre eziologie escluse dall'analisi.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>Regole dell'operazionalizzazione SCAI usata qui: ipoperfusione = almeno un segno clinico o un marcatore biochimico (lattato oltre soglia, creatinina, transaminasi). E = lattato oltre soglia, boli di vasopressori, RCP, ipotensione profonda nonostante supporto massimale, insufficienza multiorgano grave, oppure acidosi grave in presenza di ipoperfusione (Tabella 2, Fig. 7, S5). D = ipoperfusione con traiettoria sfavorevole dopo l'avvio della terapia. Senza ipoperfusione ma con supporti avviati per shock si applica il percorso di recupero (C). CSWG: si valutano le otto colonne alla lettera; con IHCA lo stadio è E come da Tabella 2, e viene mostrata anche la lettera della sola matrice.</p>
+    <ol>
+      <li>Baran DA, Naidu SS, Jentzer JC, et al. 2026 SCAI SHOCK Classification Expert Consensus Update: Refined Staging and Incorporation of Clinical Phenotypes and Patient Populations. J Soc Cardiovasc Angiogr Interv 2026; corrected proof 105736. doi:10.1016/j.jscai.2026.105736</li>
+      <li>2026 SCAI SHOCK Classification Update – Supplemental Materials: Tabelle S1–S5.</li>
+      <li>Ton VK, Li S, Zweck E, et al.; Kapur NK. Updated Staging System to Define Cardiogenic Shock Severity: A Cardiogenic Shock Working Group Report. J Card Fail 2026; Journal Pre-proof. doi:10.1016/j.cardfail.2026.10.004</li>
+    </ol>
+  </footer>
+  <button type="button" class="bar" id="bar" aria-label="Vai agli esiti">
+    <span class="bs o-scai"><span class="bn">SCAI</span><span class="bl" id="b-s">–</span></span>
+    <span class="bv" id="b-v">–</span>
+    <span class="bs o-cswg"><span class="bn">CSWG</span><span class="bl" id="b-c">–</span></span>
+  </button>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $=id=>document.getElementById(id);
+  const fmt=v=>String(v).replace(".",",");
+  const ORD={A:0,B:1,C:2,D:3,E:4};
+  const SNAME={A:"At risk",B:"Beginning",C:"Classic",D:"Deteriorating",E:"Extremis"};
+
+  /* ---------- Tabella SCAI di riferimento ---------- */
+  const SROWS=[
+    ["Perfusione clinica",{A:"Caldo, ben perfuso; JVP normale",B:"Caldo, ben perfuso; JVP elevata, rantoli",C:"Freddo e sudato, marezzato; stato mentale alterato; diuresi <30 mL/h",D:"Segni di ipoperfusione che peggiorano o non migliorano",E:"Tipicamente incosciente; polsi quasi assenti"}],
+    ["Lattato",{A:"Normale",B:"Normale",C:"≥2 mmol/L",D:"In aumento o persistentemente >2",E:"≥8 mmol/L"}],
+    ["Organi, acido-base",{A:"Funzione renale ed epatica al basale",B:"Lieve danno renale o epatico; BNP e troponina elevati",C:"Creatinina ×1,5 o +0,3 mg/dL o GFR −50%; AST e ALT aumentate",D:"Funzione renale ed epatica in peggioramento",E:"pH ≤7,2; deficit di basi >10 mEq/L"}],
+    ["Pressione e FC",{A:"PAS ≥100 o al basale; FC <100",B:"PAS <90, PAM <60 o calo >30; FC ≥100",C:"Ipotensione possibile, non necessaria",D:"Come C",E:"Ipotensione profonda nonostante supporto massimale"}],
+    ["Emodinamica invasiva",{A:"CI ≥2,5; CVP <10; PCWP <15; sat AP ≥65%",B:"CI <2,5; sat AP <60%",C:"CI <2,2; PCWP >15; CVP >10",D:"Come C",E:"—"}],
+    ["Decorso e supporto",{A:"—",B:"—",C:"Intervento oltre il volume",D:"Fallimento della strategia iniziale; escalation o aggiunta di MCS",E:"Boli di vasopressori; RCP in corso"}]
+  ];
+  const SL=["A","B","C","D","E"];
+  SL.forEach(s=>{const th=document.createElement("th");th.className="lt col s"+s;th.dataset.s=s;th.innerHTML=s+"<small>"+SNAME[s]+"</small>";$("mxs-h").appendChild(th);});
+  SROWS.forEach(([lab,o])=>{const tr=document.createElement("tr");tr.innerHTML='<th class="rowh" scope="row">'+lab+'</th>';SL.forEach(s=>{const td=document.createElement("td");td.className="col";td.dataset.s=s;td.textContent=o[s];tr.appendChild(td);});$("mxs-b").appendChild(tr);});
+
+  /* ---------- Matrice CSWG ---------- */
+  const SB={ge90:[s=>s>=90,"≥90"],r6090:[s=>s>=60&&s<90,"60–<90"],ge60:[s=>s>=60,"≥60"],lt60:[s=>s<60,"<60"]};
+  const LA={r02:[l=>l>=0&&l<=2,"0–2"],r25:[l=>l>2&&l<=5,">2–5"],r510:[l=>l>5&&l<=10,">5–10"],r210:[l=>l>2&&l<=10,">2–10"],r010:[l=>l>=0&&l<=10,"0–10"],gt10:[l=>l>10,">10"]};
+  const NN={z:[n=>n===0,"0"],r12:[n=>n>=1&&n<=2,"1–2"],r34:[n=>n>=3&&n<=4,"3–4"],ge5:[n=>n>=5,"≥5"]};
+  const COLS=[
+    {id:"A",s:"A",sb:"ge90",o1:"AND",la:"r02",o2:"AND",n:"z"},
+    {id:"B",s:"B",sb:"r6090",o1:"OR",la:"r25",o2:"AND",n:"z"},
+    {id:"C1",s:"C",sb:"r6090",o1:"AND",la:"r25",o2:"AND",n:"z"},
+    {id:"C2",s:"C",sb:"ge90",o1:"AND",la:"r02",o2:"AND",n:"r12"},
+    {id:"D1",s:"D",sb:"ge60",o1:"AND",la:"r510",o2:"AND",n:"z"},
+    {id:"D2",s:"D",sb:"r6090",o1:"OR",la:"r210",o2:"AND",n:"r12"},
+    {id:"D3",s:"D",sb:"ge60",o1:"AND",la:"r010",o2:"AND",n:"r34"},
+    {id:"E",s:"E",sb:"lt60",o1:"OR",la:"gt10",o2:"OR",n:"ge5"}
+  ];
+  const CLAB={A:"A",B:"B",C1:"C (1)",C2:"C (2)",D1:"D (1)",D2:"D (2)",D3:"D (3)",E:"E"};
+  const comb=(op,a,b)=>op==="AND"?(a&&b):(a||b);
+  (function(){
+    const h=$("mxc-h");
+    COLS.forEach(c=>{const th=document.createElement("th");th.className="lt col s"+c.s;th.dataset.c=c.id;th.innerHTML=c.s+"<small>"+(c.id==="A"?"No CS":(c.id.length>1?"("+c.id[1]+")":"&nbsp;"))+"</small>";h.appendChild(th);});
+    const rows=[["PAS mmHg",c=>SB[c.sb][1],""],["",c=>c.o1,"op"],["Lattato mmol/L",c=>LA[c.la][1],""],["",c=>c.o2,"op"],["Farmaci + tMCS",c=>NN[c.n][1],""]];
+    rows.forEach(([lab,f,cls])=>{const tr=document.createElement("tr");tr.innerHTML='<th class="rowh" scope="row">'+lab+'</th>';COLS.forEach(c=>{const td=document.createElement("td");td.className="col "+cls;td.dataset.c=c.id;td.textContent=f(c);tr.appendChild(td);});$("mxc-b").appendChild(tr);});
+  })();
+
+  /* ---------- Input ---------- */
+  const st={drugs:0,dev:0}, LIM={drugs:7,dev:4};
+  function setStep(k,v){st[k]=Math.max(0,Math.min(LIM[k],v));$(k).textContent=st[k];$(k+"-minus").disabled=st[k]===0;$(k+"-plus").disabled=st[k]===LIM[k];$("tot").textContent=st.drugs+st.dev;}
+  ["drugs","dev"].forEach(k=>{$(k+"-minus").addEventListener("click",()=>{setStep(k,st[k]-1);touched();update();});$(k+"-plus").addEventListener("click",()=>{setStep(k,st[k]+1);touched();update();});});
+  const RANGES={sbp:[0,300],map:[0,250],hr:[0,300],lac:[0,30],ph:[6.5,7.8],bd:[0,40],ci:[0,10],pcwp:[0,60],cvp:[0,40],sat:[0,100]};
+  let invalid=false;
+  function parse(id){
+    const [mn,mx]=RANGES[id], raw=$(id).value.trim().replace(",","."), box=$(id+"-box"), err=$(id+"-err");
+    box.classList.remove("bad"); err.hidden=true;
+    if(raw==="") return null;
+    const v=Number(raw);
+    if(!isFinite(v)||v<mn||v>mx){box.classList.add("bad");err.textContent="Inserisci un valore tra "+fmt(mn)+" e "+fmt(mx)+".";err.hidden=false;invalid=true;return null;}
+    return v;
+  }
+  const ck=id=>$(id).checked;
+  const radio=n=>document.querySelector('input[name="'+n+'"]:checked').value;
+
+  /* ---------- Lettura SCAI 2026 ---------- */
+  function scai(d){
+    const v=d.v, r={letter:null,rule:"",why:"",chips:[],mod:false};
+    const s5=d.src==="s5", SRC=s5?"checklist S5":"Tabella 2";
+    const clin=[],bio=[],inst=[],ext=[];
+    const lacC=v.lac!==null&&(s5?v.lac>2:v.lac>=2), lacE=v.lac!==null&&(s5?v.lac>8:v.lac>=8);
+    const acid=(v.ph!==null&&(s5?v.ph<7.2:v.ph<=7.2))||(!s5&&v.bd!==null&&v.bd>10);
+    const hrB=v.hr!==null&&(s5?(v.hr>100&&!ck("tachy")):v.hr>=100);
+    if(ck("skin")) clin.push("cute fredda o marezzata");
+    if(ck("mental")) clin.push("stato mentale alterato");
+    if(ck("olig")) clin.push("oliguria");
+    if(lacC) bio.push("lattato "+fmt(v.lac));
+    if(ck("creat")) bio.push("creatinina in aumento");
+    if(ck("transam")) bio.push("transaminasi aumentate");
+    if(v.sbp!==null&&v.sbp<90) inst.push("PAS "+fmt(v.sbp));
+    if(v.map!==null&&v.map<60) inst.push("PAM "+fmt(v.map));
+    if(ck("drop30")) inst.push("calo PAS >30");
+    if(hrB) inst.push("FC "+fmt(v.hr));
+    const hypo=clin.length+bio.length>0, bad=d.traj==="worsening"||d.traj==="flat";
+    if(lacE) ext.push("lattato "+fmt(v.lac)+" mmol/L");
+    if(ck("profound")) ext.push("ipotensione profonda nonostante supporto massimale");
+    if(ck("boli")) ext.push("boli di vasopressori");
+    if(ck("cpr")) ext.push("RCP o collasso circolatorio");
+    if(ck("mof")) ext.push("insufficienza multiorgano grave");
+    if(acid&&hypo) ext.push("acidosi grave con ipoperfusione");
+    Object.assign(d,{clin,bio,inst,ext,hypo,bad,lacC,lacE});
+    if(ext.length){r.letter="E";r.rule="Criteri di collasso circolatorio";r.why="Collasso in atto o imminente: <b>"+ext.join(", ")+"</b>.";}
+    else if(hypo){
+      const ev=clin.concat(bio).join(", ");
+      if(bad){r.letter="D";r.rule="Ipoperfusione + traiettoria sfavorevole";r.why="Ipoperfusione (<b>"+ev+"</b>) "+(d.traj==="worsening"?"in peggioramento a 2–3 h":"non migliorata a 4–6 h")+" nonostante la strategia iniziale.";}
+      else{r.letter="C";r.rule="Ipoperfusione";r.why="Ipoperfusione: <b>"+ev+"</b>"+(inst.length?"; instabilità: "+inst.join(", "):", con pressione e frequenza conservate")+".";
+        if(!inst.length&&d.sup===0) r.chips.push(["warn","Ipoperfusione normotesa: C, non B"]);
+        if(d.traj==="first") r.chips.push(["","D non assegnabile alla prima valutazione: restadiare a 2–3 h"]);}
+    }
+    else if(d.sup>0&&d.forshock){r.letter="C";r.rule="Percorso di recupero (Fig. 1; S5)";r.why="Nessun marcatore di ipoperfusione con <b>"+d.sup+" support"+(d.sup===1?"o":"i")+" in corso</b>: perfusione normalizzata sotto supporto. La checklist S5 elenca tra i reperti di C la necessità di supporto per normalizzare CI o perfusione. Se resta normale dopo la rimozione: B o A.";}
+    else if(inst.length){r.letter="B";r.rule="Instabilità senza ipoperfusione";r.why="Instabilità emodinamica (<b>"+inst.join(", ")+"</b>) senza ipoperfusione.";}
+    else if(d.ctx!=="none"){r.letter="A";r.rule="A rischio, stabile";r.why="Nessuna instabilità né ipoperfusione in un contesto a rischio concreto.";}
+    else{r.rule="Fuori dominio";r.why="Nessun criterio di stadio e nessun contesto acuto o ad alto rischio. Per lo scompenso ambulatoriale stabile valgono INTERMACS e NYHA.";}
+    if(acid&&!hypo) r.chips.push(["warn","Acidosi senza ipoperfusione: verificarne l'origine prima di considerarla criterio di E"]);
+    if(v.lac===2) r.chips.push(["warn","Lattato 2,0: ipoperfusione per la Tabella 2 (≥2), non per la checklist S5 (>2)"]);
+    if(v.lac===8) r.chips.push(["warn","Lattato 8,0: stadio E per la Tabella 2 (≥8), non per la checklist S5 (>8)"]);
+    if(v.ph===7.2) r.chips.push(["warn","pH 7,2: criterio di E per la Tabella 2 (≤7,2), non per la checklist S5 (<7,2)"]);
+    if(v.hr===100) r.chips.push(["warn","FC 100: tachicardia per la Tabella 2 (≥100), non per la checklist S5 (>100)"]);
+    if(ck("tachy")&&v.hr!==null&&v.hr>=100) r.chips.push(["",s5?"Tachiaritmia: FC esclusa dai criteri di B (S5)":"Tachiaritmia: la checklist S5 escluderebbe la FC dai criteri di B"]);
+    if(d.sup>0&&!d.forshock) r.chips.push(["","Supporti non avviati per shock: la terapia non definisce lo stadio"]);
+    if(d.ctx==="none"&&r.letter&&r.letter!=="A") r.chips.push(["warn","Contesto non acuto: verificare il dominio di applicazione"]);
+    const notA=(v.ci!==null&&(s5?v.ci<=2.5:v.ci<2.5))||(v.cvp!==null&&v.cvp>=10)||(v.pcwp!==null&&v.pcwp>=15)||(v.sat!==null&&(s5?v.sat<=65:v.sat<65));
+    if(r.letter==="A"&&notA) r.chips.push(["warn","Emodinamica invasiva non compatibile con lo stadio A ("+SRC+")"]);
+    if((r.letter==="A"||r.letter==="B")&&v.ci!==null&&v.ci<2.2) r.chips.push(["warn","CI <2,2: reperto dello stadio C, ricercare ipoperfusione"]);
+    if(r.letter==="A"&&v.sbp!==null&&v.sbp>=90&&(s5?v.sbp<=100:v.sbp<100)) r.chips.push(["warn","PAS 90–"+(s5?"100":"99")+": lo stadio A richiede PAS "+(s5?">100":"≥100")+" o al basale; zona non descritta"]);
+    if(d.ca!=="none"){ if(d.neuro==="coma"){r.mod=true;r.chips.unshift(["mod","+ modificatore “arrest”"]);} else r.chips.push(["","Arresto senza sospetta lesione anossica: nessun modificatore"]); }
+    return r;
+  }
+
+  /* ---------- Lettura CSWG 2026 ---------- */
+  function cswg(d){
+    const v=d.v, r={letter:null,matrix:null,col:null,sat:[],rule:"",why:"",chips:[],mod:false,ihca:false,na:false};
+    if(v.sbp===null||v.lac===null){r.na=true;r.rule="Non calcolabile";r.why="Servono PAS e lattato. Nel registro CSWG i pazienti senza lattato erano esclusi dal calcolo dello stadio.";
+      if(d.ca==="ihca"){r.letter="E";r.ihca=true;r.rule="IHCA";r.why="IHCA: stadio E automatico secondo la Tabella 2. Senza PAS e lattato la matrice non è calcolabile.";}
+      return r;}
+    COLS.forEach(c=>{ if(comb(c.o2,comb(c.o1,SB[c.sb][0](v.sbp),LA[c.la][0](v.lac)),NN[c.n][0](d.sup))){ r.sat.push(c.id); if(!r.col||ORD[c.s]>ORD[COLS.find(x=>x.id===r.col).s]) r.col=c.id; }});
+    if(r.col){
+      const c=COLS.find(x=>x.id===r.col);
+      r.matrix=c.s; r.letter=c.s;
+      r.rule="Colonna "+CLAB[c.id]+": PAS "+SB[c.sb][1]+" "+c.o1+" lattato "+LA[c.la][1]+" "+c.o2+" "+NN[c.n][1]+" supporti";
+      const txt={A:"PAS ≥90, lattato ≤2, nessun supporto: nessuno shock secondo la matrice.",
+        B:"PAS 60–<90 oppure lattato >2–5, senza supporti.",
+        C1:"Ipotensione e lattato >2–5 insieme, senza supporti.",
+        C2:"PAS ≥90 e lattato ≤2 con 1–2 supporti: shock classico che risponde al trattamento.",
+        D1:"Lattato >5–10 senza supporti.",
+        D2:"Ipotensione o lattato >2–10 persistenti nonostante 1–2 supporti.",
+        D3:"3–4 supporti contemporanei.",
+        E:(v.sbp<60?"PAS <60":"")+(v.lac>10?(v.sbp<60?", ":"")+"lattato >10":"")+(d.sup>=5?((v.sbp<60||v.lac>10)?", ":"")+d.sup+" supporti":"")+"."};
+      r.why=txt[c.id];
+      if(c.id==="C2"&&!d.forshock){r.letter=null;r.na=true;r.rule="Regola C (2) non applicabile";r.why="Lo stadio C da conteggio vale solo con diagnosi di shock cardiogeno: esclusi l'inotropo empirico nello scompenso e l'Impella per PCI ad alto rischio.";}
+      if(r.sat.length>1&&r.letter) r.chips.push(["","Colonne vere: "+r.sat.map(x=>CLAB[x]).join(", ")+" · vale la più grave"]);
+    } else {r.na=true;r.rule="Nessuna colonna soddisfatta";r.why="La combinazione non rientra in nessuna colonna della matrice.";}
+    if(d.ca==="ohca"){r.mod=true;r.chips.unshift(["mod","+ modificatore OHCA"]);}
+    if(d.ca==="ihca"){r.ihca=true;r.chips.unshift(["mod","IHCA"]); if(r.letter!=="E"){r.why="IHCA: stadio E automatico secondo la Tabella 2. Dalla sola matrice: "+(r.matrix||"nessuno stadio")+".";r.letter="E";r.rule="IHCA → E (Tabella 2)";}
+      r.chips.push(["warn","Criterio non formalizzato: l'illustrazione centrale riporta “verosimilmente E”"]);}
+    return r;
+  }
+
+  /* ---------- Spiegazione delle divergenze ---------- */
+  function reasons(d,S,C){
+    const v=d.v, out=[], s=S.letter, c=C.letter, o=x=>x?ORD[x]:-1;
+    const add=(cat,k,t,x)=>out.push({cat,k,t,x});
+    const col=C.col, sup=d.sup;
+    if(s&&c&&s!==c){
+      if(col==="B"&&sup===0&&v.sbp>=90&&v.lac>2&&v.lac<=5&&s!=="B")
+        add("Disaccordo di principio","principio","Ipoperfusione normotesa","SCAI 2026 la classifica C e dichiara esplicitamente il dissenso dalla lettura CSWG. La matrice CSWG 2026 la mantiene in B: PAS ≥90 oppure lattato >2–5, senza supporti.");
+      if(v.lac===2&&d.src==="t2"&&s!=="A"&&s!=="B"&&o(c)<o(s))
+        add("Soglie diverse","soglie","Lattato esattamente 2,0","È ipoperfusione per la Tabella 2 SCAI (≥2 mmol/L), non per la checklist S5 dello stesso documento (>2) né per CSWG (0–2). Con la checklist S5 la divergenza scompare.");
+      if(d.hypo&&!d.lacC&&o(c)<o(s)&&s!=="E")
+        add("Variabili non condivise","var","Ipoperfusione senza lattato elevato","CSWG riconosce l'ipoperfusione solo da un lattato >2 mmol/L. Segni clinici, diuresi e marcatori d'organo non entrano nella matrice. Per SCAI un lattato quasi normale non esclude l'ipoperfusione, soprattutto nello HF-CS.");
+      if(s==="B"&&c==="A")
+        add("Variabili non condivise","var","Instabilità con PAS ≥90","CSWG usa solo la PAS: PAM <60, calo >30 mmHg e tachicardia non entrano nella matrice.");
+      if(col==="D1"&&o(s)<3)
+        add("Ruolo del tempo","tempo","Lattato >5–10 al primo contatto","Per CSWG è D già alla prima valutazione, anche senza supporti. Per SCAI D richiede il fallimento di una strategia già avviata.");
+      if(col==="D2"&&o(s)<3)
+        add("Ruolo del tempo","tempo","Ipotensione o lattato con 1–2 supporti","CSWG legge l'ipotensione o il lattato >2 sotto 1–2 supporti come persistenza nonostante la terapia, quindi D. SCAI chiede di osservare la risposta: peggioramento netto a 2–3 h o mancato miglioramento a 4–6 h.");
+      if(col==="D3"&&o(s)<3)
+        add("Disaccordo di principio","principio","3–4 supporti contemporanei","Con 3–4 supporti CSWG assegna D a prescindere dai valori. Per SCAI tipo e intensità della terapia non definiscono lo stadio: se la perfusione è normalizzata sotto supporto il paziente è C (percorso di recupero).");
+      if(sup>=5&&c==="E"&&s!=="E"&&!C.ihca)
+        add("Disaccordo di principio","principio","≥5 supporti","Per CSWG ≥5 farmaci e dispositivi sono stadio E. Per SCAI nessun dispositivo, ECLS compresa, definisce da solo E: conta lo stato emodinamico e metabolico.");
+      if(d.lacE&&v.lac<=10&&s==="E"&&c!=="E")
+        add("Soglie diverse","soglie","Soglia metabolica di E","Lattato "+(d.src==="s5"?">8":"≥8")+" mmol/L è E per SCAI ("+(d.src==="s5"?"checklist S5":"Tabella 2")+"); per CSWG serve un lattato >10.");
+      if(v.sbp<60&&c==="E"&&s!=="E")
+        add("Soglie diverse","soglie","PAS <60 mmHg","Per CSWG è E già alla prima rilevazione. Per SCAI E richiede ipotensione profonda nonostante supporto massimale, boli di vasopressori, lattato ≥8 o RCP.");
+      if(s==="E"&&(ck("profound")||ck("boli")||ck("cpr")||ck("mof")||d.ext.some(x=>x.startsWith("acidosi")))&&c!=="E")
+        add("Variabili non condivise","var","Criteri clinici e metabolici di E","Boli di vasopressori, RCP, ipotensione profonda nonostante supporto massimale, insufficienza multiorgano e acidosi grave non hanno un corrispettivo nella matrice CSWG, che ha eliminato il pH.");
+      if(s==="D"&&o(c)<3)
+        add("Ruolo del tempo","tempo","Traiettoria clinica","SCAI assegna D per il peggioramento o il mancato miglioramento dopo la strategia iniziale. CSWG non usa la traiettoria come criterio: la ricostruisce ristadiando a intervalli di 6 h.");
+      if(C.ihca&&c==="E"&&s!=="E")
+        add("Arresto cardiaco","arresto","IHCA","Per CSWG l'IHCA è stadio E automatico (Tabella 2 CSWG). Per SCAI l'arresto non determina lo stadio, salvo l'arresto refrattario (Fig. 7): è un modificatore, riservato alla sospetta lesione anossica.");
+      if(!out.length) add("Combinazione di criteri","var","Regole diverse sullo stesso dato","Le due letture usano soglie e variabili diverse: confronta la regola indicata sotto ciascuna lettera.");
+    }
+    if(!s&&c) add("Dominio","var","Fuori dal dominio SCAI","SCAI si applica a evento acuto o acuto su cronico, procedure ad alto rischio e scompenso cronico ad alto rischio. CSWG assegna uno stadio a chiunque abbia PAS e lattato.");
+    if(s&&!c&&!C.ihca) add("Variabili richieste","var","CSWG non calcolabile",C.why);
+    if(d.ca!=="none"&&(S.mod!==C.mod||d.ca==="ihca")){
+      add("Arresto cardiaco","arresto","Criterio del modificatore","SCAI applica il modificatore “arrest” per arresto con sospetta lesione anossica (Fig. 1, checklist S5), in qualunque sede. CSWG decide in base alla sede: OHCA è un modificatore, IHCA porta in E.");
+    }
+    return out;
+  }
+
+  /* ---------- Rendering ---------- */
+  function paintLetter(el,l,na){el.className="letter"+(l?" s"+l:" na");el.textContent=l||"–";}
+  function chips(el,list){el.innerHTML="";list.forEach(([cls,t])=>{const s=document.createElement("span");s.className="chip "+cls;s.textContent=t;el.appendChild(s);});}
+
+  function update(){
+    invalid=false;
+    const v={}; Object.keys(RANGES).forEach(k=>v[k]=parse(k));
+    const d={v,ctx:radio("ctx"),src:radio("src"),traj:radio("traj"),ca:radio("ca"),neuro:radio("neuro"),sup:st.drugs+st.dev,forshock:ck("forshock")};
+    document.querySelectorAll('input[name="neuro"]').forEach(x=>x.disabled=d.ca==="none");
+    if(invalid){
+      ["s","c"].forEach(p=>{paintLetter($(p+"-letter"),null);$(p+"-title").textContent="Valori da correggere";$(p+"-rule").textContent="";$(p+"-why").textContent="Correggi i campi evidenziati.";chips($(p+"-chips"),[]);});
+      setVerdict("na","Dati da correggere",[]); bar(null,null,"–"); hi(null,null,[]); return;
+    }
+    const S=scai(d), C=cswg(d);
+    paintLetter($("s-letter"),S.letter);
+    $("s-title").textContent=S.letter?"Stadio "+S.letter+" · "+SNAME[S.letter]+(S.mod?" + arrest":""):"Nessuno stadio";
+    $("s-rule").textContent=S.rule; $("s-why").innerHTML=S.why; chips($("s-chips"),S.chips);
+    paintLetter($("c-letter"),C.letter);
+    $("c-title").textContent=C.letter?"Stadio "+C.letter+(C.letter==="A"?" · No CS":"")+(C.mod?" + OHCA":""):(C.na?"Nessuno stadio":"–");
+    $("c-rule").textContent=C.rule; $("c-why").innerHTML=C.why; chips($("c-chips"),C.chips);
+    const list=reasons(d,S,C);
+    let kind,title;
+    if(!S.letter&&!C.letter){kind="na";title="Nessuno stadio assegnabile";}
+    else if(S.letter===C.letter&&S.mod===C.mod&&d.ca!=="ihca"){kind="ok";title="Stessa lettera: stadio "+S.letter+(S.mod?" con modificatore":"");}
+    else if(S.letter===C.letter){kind="no";title="Stessa lettera, lettura diversa dell'arresto";}
+    else{kind="no";title="SCAI "+(S.letter||"–")+" · CSWG "+(C.letter||"–");}
+    setVerdict(kind,title,list);
+    bar(S.letter,C.letter,kind==="ok"?"Concordi":kind==="no"?"Discordi":"–");
+    hi(S.letter,C.col,C.sat);
+  }
+  function setVerdict(kind,title,list){
+    const p=$("v-pill"); p.className="pill "+kind; p.textContent=kind==="ok"?"Concordi":kind==="no"?"Discordi":"–";
+    $("v-title").textContent=title;
+    const ul=$("v-list"); ul.innerHTML="";
+    list.forEach(r=>{const li=document.createElement("li");li.className="k-"+r.k;li.innerHTML='<span class="r-cat">'+r.cat+'</span><span class="r-t">'+r.t+'</span><span class="r-x">'+r.x+'</span>';ul.appendChild(li);});
+    const e=$("v-empty");
+    if(!list.length&&kind==="ok"){e.hidden=false;e.textContent="I criteri dei due sistemi portano alla stessa lettera con questi dati.";}
+    else e.hidden=true;
+  }
+  function hi(s,col,sat){
+    const ms=$("mxs"), mc=$("mxc");
+    ms.classList.toggle("has-on",!!s); ms.querySelectorAll(".col").forEach(e=>e.classList.toggle("on",e.dataset.s===s));
+    mc.classList.toggle("has-on",!!col); mc.querySelectorAll(".col").forEach(e=>{e.classList.toggle("on",e.dataset.c===col);e.classList.toggle("alsoon",e.dataset.c!==col&&sat.includes(e.dataset.c));});
+  }
+  function bar(s,c,txt){const bs=$("b-s"),bc=$("b-c");bs.className="bl"+(s?" s"+s:"");bs.textContent=s||"–";bc.className="bl"+(c?" s"+c:"");bc.textContent=c||"–";$("b-v").textContent=txt;}
+
+  /* ---------- Casi ---------- */
+  const BASE={ctx:"acute",sbp:"",map:"",hr:"",drop30:false,lac:"",ph:"",bd:"",skin:false,mental:false,olig:false,creat:false,transam:false,drugs:0,dev:0,forshock:true,traj:"first",profound:false,boli:false,cpr:false,ca:"none",neuro:"coma",ci:"",pcwp:"",cvp:"",sat:""};
+  const CASES=[
+    {g:"ok",n:"C classico",d:{sbp:82,map:60,hr:108,lac:3.4,skin:true,olig:true}},
+    {g:"ok",n:"D in peggioramento",d:{sbp:78,map:56,hr:118,lac:6.2,skin:true,mental:true,olig:true,drugs:2,dev:1,traj:"worsening"}},
+    {g:"no",n:"Ipoperfusione normotesa",d:{sbp:104,map:76,hr:98,lac:3.6,olig:true}},
+    {g:"no",n:"HF-CS, lattato normale",d:{sbp:96,map:70,hr:92,lac:1.7,skin:true,olig:true,creat:true,ci:1.7,pcwp:26}},
+    {g:"no",n:"Lattato 6,5 al primo contatto",d:{sbp:94,map:68,hr:112,lac:6.5,skin:true}},
+    {g:"no",n:"PAS 86 con un vasopressore",d:{sbp:86,map:62,hr:104,lac:3.1,skin:true,olig:true,drugs:1}},
+    {g:"no",n:"Normalizzato con 3 supporti",d:{sbp:104,map:74,hr:92,lac:1.4,drugs:2,dev:1,traj:"improving"}},
+    {g:"no",n:"VA-ECMO + IABP, 3 farmaci",d:{sbp:96,map:70,hr:90,lac:2.6,drugs:3,dev:2,traj:"improving"}},
+    {g:"no",n:"Lattato 9",d:{sbp:92,map:66,hr:120,lac:9,skin:true,mental:true,drugs:1}},
+    {g:"no",n:"Lattato 2,0 isolato",d:{sbp:104,map:76,hr:88,lac:2}},
+    {g:"no",n:"PAS 56 alla presentazione",d:{sbp:56,map:40,hr:124,lac:3.8,skin:true,mental:true}},
+    {g:"no",n:"OHCA, paziente sveglio",d:{sbp:84,map:60,hr:100,lac:2.8,drugs:1,ca:"ohca",neuro:"awake"}},
+    {g:"no",n:"IHCA in coma",d:{sbp:88,map:58,hr:110,lac:4.2,skin:true,drugs:2,ca:"ihca",neuro:"coma"}}
+  ];
+  function load(i){
+    const c=Object.assign({},BASE,CASES[i].d);
+    ["sbp","map","hr","lac","ph","bd","ci","pcwp","cvp","sat"].forEach(k=>$(k).value=c[k]===""?"":fmt(c[k]));
+    ["drop30","tachy","skin","mental","olig","creat","transam","forshock","profound","boli","cpr","mof"].forEach(k=>$(k).checked=!!c[k]);
+    $("ctx-"+c.ctx).checked=true; $("traj-"+c.traj).checked=true; $("ca-"+c.ca).checked=true; $("neuro-"+c.neuro).checked=true;
+    $("inv").open=!!(c.ci||c.pcwp||c.cvp||c.sat);
+    setStep("drugs",c.drugs); setStep("dev",c.dev);
+    document.querySelectorAll(".case").forEach(b=>b.setAttribute("aria-pressed",b.dataset.i==String(i)?"true":"false"));
+    update();
+  }
+  CASES.forEach((c,i)=>{const b=document.createElement("button");b.type="button";b.className="case";b.dataset.i=i;b.textContent=c.n;b.setAttribute("aria-pressed","false");b.addEventListener("click",()=>load(i));$(c.g==="ok"?"cases-ok":"cases-no").appendChild(b);});
+  function touched(){document.querySelectorAll(".case").forEach(b=>b.setAttribute("aria-pressed","false"));}
+
+  $("form").addEventListener("input",()=>{touched();update();});
+  $("form").addEventListener("change",()=>{touched();update();});
+  $("form").addEventListener("submit",e=>e.preventDefault());
+  $("reset").addEventListener("click",()=>{
+    ["sbp","map","hr","lac","ph","bd","ci","pcwp","cvp","sat"].forEach(k=>$(k).value="");
+    $("form").querySelectorAll('input[type="checkbox"]').forEach(x=>x.checked=false); $("forshock").checked=true;
+    $("ctx-acute").checked=true;$("src-t2").checked=true;$("traj-first").checked=true;$("ca-none").checked=true;$("neuro-coma").checked=true;
+    setStep("drugs",0);setStep("dev",0);touched();update();$("sbp").focus();
+  });
+  $("swap").addEventListener("click",()=>{const r=$("root"),on=r.dataset.swap!=="1";r.dataset.swap=on?"1":"0";$("swap").setAttribute("aria-pressed",on?"true":"false");
+  });
+  const barEl=$("bar");
+  barEl.addEventListener("click",()=>{const rm=matchMedia("(prefers-reduced-motion: reduce)").matches;$("results").scrollIntoView({behavior:rm?"auto":"smooth",block:"start"});});
+  if("IntersectionObserver" in window){new IntersectionObserver(es=>es.forEach(e=>barEl.classList.toggle("off",e.isIntersecting)),{threshold:0.3}).observe($("results"));}
+
+  setStep("drugs",0); setStep("dev",0);
+  load(2);
+})();
+</script>
+</body>
+</html>
